@@ -7,14 +7,15 @@
   (let ((winners));winners is the list of winners
     (dotimes (i K winners) ; play K games
       (setf winners (cons (play-game ;play the game
-			   (make-dealer :deck (make-deck) ; create the dealer
+			   (make-dealer :deck (RandomShuffle (make-deck)) ; create the dealer
 					:agents(make-agents N M))) ; create the players
 			  winners))))); set the winner
     
 
 
 ; This macro is used in play-game
-; so that if the 
+; so if game is done no one can bet
+; then go to end.
 (defmacro m-collect-bets (a-dealer)
   `(if (collect-bets ,a-dealer)
       (go end)))
@@ -35,7 +36,9 @@
       (eval-winner the-dealer)
       ))
 
-
+; This creates num-agents number of agents
+; that are initialized with num-chips number of chips
+; and the agents are returned as a list.
 (defun make-agents (num-agents num-chips)
   (let ((agents))
     (dotimes (i num-agents agents)
@@ -60,16 +63,25 @@
 )
 
 
-(defun deal-com (the-dealer num) (print "bad"))
+(defun deal-com (the-dealer num) 
+    (setf (dealer-communal the-dealer) 
+	  (cons (rand-remove the-dealer num) (dealer-communal the-dealer)))
+)
 
 
 ; give two random cards from the deck to each of the
 ; players
-(defun deal-hands (the-dealer))
+(defun deal-hands (the-dealer)
+  (dolist (cur-agent (dealer-agents the-dealer))
+    (setf (agent-hand cur-agent) (rand-remove the-dealer 2)))
+)
 
 ; returns num cards from the deck and 
 ; removes them from the deck
-(defun rand-remove (the-dealer num))
+(defun rand-remove (the-dealer num)
+  (let ((deck (dealer-deck the-dealer)))
+    (loop :repeat num :for x :in deck :collect x :do
+       (setf deck (remove x deck)))))
 
 
 
@@ -502,6 +514,22 @@
             (and (< (first cardvals) (second cardvals)) (< (second cardvals) (third cardvals))
        	    (< (third cardvals) (fourth cardvals)) (< (fourth cardvals) (fifth cardvals))))
 
+
+
+
+;;REQUIRES: deck != nil and in the format
+;;   ((Card1 Suit1) (Card2 Suit1) ... (Card1 Suit2) ... (Card1 Suit3) ... (Card13 Suit4))
+;;   where Card1-Card13 is the sequence (A 2 3 4 5 6 7 8 9 10 J Q K)
+;;   and Suit1-Suit4 is the sequence
+;;   (S D H C) ie (Spades Diamonds Hearts Clubs)
+;;EFFECTS: Returns a deck sorted in a random order
+(defun RandomShuffle (deck)
+  (let ((shuffled '()) (cur-deck-length (length deck)) (cur-elt))
+    (dotimes (i cur-deck-length shuffled) ;iterate over the size of a deck
+      (setf cur-elt (elt deck (random (length deck))));get a random card
+      (setf shuffled (cons cur-elt shuffled));add the card to the shuffled deck
+      (setf deck (remove cur-elt deck));remove the card from the unshuffled deck
+      )))
 
 ;; EFFECTS: Returns a 52 card deck
 ;; eg. ((Card1 Suit1) (Card2 Suit1) ... (Card1 Suit2) ... (Card1 Suit3) ... (Card13 Suit4))
