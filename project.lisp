@@ -7,7 +7,7 @@
   (let ((winners));winners is the list of winners
     (dotimes (i K winners) ; play K games
       (setf winners (cons (play-game ;play the game
-			   (make-dealer :deck (RandomShuffle (make-deck)) ; create the dealer
+			   (make-dealer :pot 0 :deck (RandomShuffle (make-deck)) ; create the dealer
 					:agents(make-agents N M))) ; create the players
 			  winners))))); set the winner
     
@@ -65,7 +65,7 @@
 
 (defun deal-com (the-dealer num) 
     (setf (dealer-communal the-dealer) 
-	  (cons (rand-remove the-dealer num) (dealer-communal the-dealer)))
+	  (append (rand-remove the-dealer num) (dealer-communal the-dealer)))
 )
 
 
@@ -79,9 +79,17 @@
 ; returns num cards from the deck and 
 ; removes them from the deck
 (defun rand-remove (the-dealer num)
-  (let ((deck (dealer-deck the-dealer)))
-    (loop :repeat num :for x :in deck :collect x :do
-       (setf deck (remove x deck)))))
+     (loop :repeat num :for x :in (dealer-deck the-dealer) :collect x :do
+       (setf  (dealer-deck the-dealer) (remove x  (dealer-deck the-dealer)))))
+
+
+
+(defun test-rand-remove ()
+  (let ((dealer (make-dealer :pot 0 :deck (RandomShuffle (make-deck)) ; create the dealer
+					:agents(make-agents 2 5))))
+    (print (dealer-deck dealer))
+ (print (rand-remove dealer 2))
+    (print (dealer-deck dealer))))
 
 
 
@@ -97,9 +105,13 @@
   (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
     (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
       (setf amount (apply (agent-fold ag) (list ag (dealer-communal the-dealer) (dealer-pot the-dealer))))
+      (print amount)
       (if (= 0 amount) (setf (agent-hand ag) '())) ; discard the agent's cards if it didn't bet
+      (print amount)
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
+      
       (incf (dealer-pot the-dealer) amount)        ; and add them to the pot
+      (print (dealer-pot the-dealer))
       )))
 
 
@@ -107,13 +119,18 @@
 ; and remove any agents that have no chips left
 (defun eval-winner (the-dealer)
   (let* ((agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer))))
-    (sorted-agents (sort (apply agents '()) #'(lambda (x y) (>= (CompareHands
+
+    (sorted-agents (sort (apply agents '()) #'(lambda (x y) (if (not (null y)) (>= (CompareHands
 							     (append (agent-hand x) (dealer-communal the-dealer))  
-							     (append (agent-hand y) (dealer-communal the-dealer)))  0)))))
+							     (append (agent-hand y) (dealer-communal the-dealer)))  0) T) ))))
+
+    (print sorted-agents)
+
     ; might want to do a remove if not equal to the first one when compare hands is done ie remove all that don't return 0 when compared to first in sorted-agents
     ; then I can split the pot.
     ; so the first agent in the sorted-agents is the winner! give him the pot
     (incf (agent-chips (first sorted-agents)) (dealer-pot the-dealer)))
+ ; (print "past incf")
   ;set pot to 0
   (setf (dealer-pot the-dealer) 0)
   ; then remove the agents that have 3 or less chips left to play with.
@@ -124,10 +141,23 @@
 
 
 
+(defun test-eval-winner ()
+  (let ((dealer (make-dealer :pot 0 :deck (RandomShuffle (make-deck)) ; create the dealer
+					:agents(make-agents 2 5))))
+    (deal-hands dealer)
+    (setf (agent-chips (first (dealer-agents dealer))) 2)
+    
+    (deal-com dealer 5)
+  (eval-winner dealer)
+  (print (dealer-agents dealer))))
+
+
 ; this is the interface to all fold functions
 ; this function will return 0 if folding
 ; otherwise it means to bet the returned number of chips
-(defun play-hand (agent com-cards pot) 0 ); note that I could use this as a forwarding function based on id of agent
+(defun play-hand (agent com-cards pot) 
+  (if (= 0 (agent-chips agent)) 0 1)
+ ); note that I could use this as a forwarding function based on id of agent
   
 
 
