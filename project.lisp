@@ -119,13 +119,9 @@
 ; and remove any agents that have no chips left
 (defun eval-winner (the-dealer)
   (let* ((agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer))))
-
-    (sorted-agents (sort (apply agents '()) #'(lambda (x y) (if (not (null y)) (>= (CompareHands
+	 (sorted-agents (sort (apply agents '()) #'(lambda (x y) (if (not (null y)) (>= (CompareHands
 							     (append (agent-hand x) (dealer-communal the-dealer))  
 							     (append (agent-hand y) (dealer-communal the-dealer)))  0) T) ))))
-
-    (print sorted-agents)
-
     ; might want to do a remove if not equal to the first one when compare hands is done ie remove all that don't return 0 when compared to first in sorted-agents
     ; then I can split the pot.
     ; so the first agent in the sorted-agents is the winner! give him the pot
@@ -157,7 +153,7 @@
 ; otherwise it means to bet the returned number of chips
 (defun play-hand (agent com-cards pot) 
   (if (= 0 (agent-chips agent)) 0 1)
- ); note that I could use this as a forwarding function based on id of agent
+ ); note that we could use this as a forwarding function based on id of agent
   
 
 
