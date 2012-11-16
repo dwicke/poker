@@ -4,16 +4,17 @@
 ;	    - K: # of games to play/simulate.
 
 (defun PokerMaster (N M K)
-  (let ((winners));winners is the list of winners and players are the agents
-    (dotimes (i K winners)
-      (setf winners (cons (play-game 
-			   (make-dealer :deck (make-deck)
-					:agents(make-agents N M)))
-			  winners)))))
+  (let ((winners));winners is the list of winners
+    (dotimes (i K winners) ; play K games
+      (setf winners (cons (play-game ;play the game
+			   (make-dealer :deck (make-deck) ; create the dealer
+					:agents(make-agents N M))) ; create the players
+			  winners))))); set the winner
     
 
 
-
+; This macro is used in play-game
+; so that if the 
 (defmacro m-collect-bets (a-dealer)
   `(if (collect-bets ,a-dealer)
       (go end)))
@@ -39,7 +40,7 @@
   (let ((agents))
     (dotimes (i num-agents agents)
       (setf agents (cons 
-		    (make-agent :id i :chips num-chips :foldp #'play-hand)
+		    (make-agent :id i :chips num-chips :fold #'play-hand)
 		    agents))
       )))
 
@@ -103,8 +104,9 @@
     (incf (agent-chips (first sorted-agents)) (dealer-pot the-dealer)))
   ;set pot to 0
   (setf (dealer-pot the-dealer) 0)
-  ; then remove the agents that do not have any chips left to play with
-  (setf (dealer-agents the-dealer) (remove-if  #'(lambda (x) (if (= 0 (agent-chips x)) T)) (dealer-agents the-dealer)))
+  ; then remove the agents that have 3 or less chips left to play with.
+  ; (this ensures that it is possible for them to play another round by betting one chip each time)
+  (setf (dealer-agents the-dealer) (remove-if  #'(lambda (x) (if (<= 3 (agent-chips x)) T)) (dealer-agents the-dealer)))
 
 )
 
