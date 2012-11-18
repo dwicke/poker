@@ -119,14 +119,12 @@
 ; and remove any agents that have no chips left
 (defun eval-winner (the-dealer)
   (let* ((agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer))))
-	 (sorted-agents (sort (apply agents '()) #'(lambda (x y) (if (not (null y)) (>= (CompareHands
-							     (append (agent-hand x) (dealer-communal the-dealer))  
-							     (append (agent-hand y) (dealer-communal the-dealer)))  0) T) ))))
+	 
+	 (sorted-agents (sort (apply agents '()) #'(lambda (x y) (if (not (null y)) (>= (compare-best x y the-dealer)  0) T) ))))
     ; might want to do a remove if not equal to the first one when compare hands is done ie remove all that don't return 0 when compared to first in sorted-agents
     ; then I can split the pot.
     ; so the first agent in the sorted-agents is the winner! give him the pot
     (incf (agent-chips (first sorted-agents)) (dealer-pot the-dealer)))
- ; (print "past incf")
   ;set pot to 0
   (setf (dealer-pot the-dealer) 0)
   ; then remove the agents that have 3 or less chips left to play with.
@@ -135,6 +133,18 @@
 
 )
 
+; x and y are agents and the-dealer is the dealer
+; returns the which 1 if x has a better hand than y
+; -1 if y is better.
+(defun compare-best (x y the-dealer)
+  (let ((my-best-hand) (other-hand))
+    (resetbest)
+    (setf my-best-hand (comb 5 (append (agent-hand x) (dealer-communal the-dealer)) #'best))
+    (resetbest)
+    (setf other-hand  (comb 5 (append (agent-hand y) (dealer-communal the-dealer)) #'best))
+    (resetbest)
+    (CompareHands my-best-hand other-hand)
+    ))
 
 
 (defun test-eval-winner ()
