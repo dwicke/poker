@@ -43,7 +43,7 @@
   (let ((agents))
     (dotimes (i num-agents agents)
       (setf agents (cons 
-		    (make-agent :id i :chips num-chips :fold #'play-hand)
+		    (make-agent :id i :chips num-chips :bet #'play-hand)
 		    agents))
       )))
 
@@ -52,7 +52,7 @@
   id     ; the id of the agent
   chips  ; the remaining chips the agent has
   hand   ; the hand the agent was delt NOTE: *******is empty if folded
-  fold  ; a predicate that will evaluate the current state and return t if should fold
+  bet  ; a function that returns the number of chips that the agent bets
 )
 
 (defstruct dealer
@@ -104,7 +104,7 @@
   ; agents is a lambda function that returns the list of agents that have not folded
   (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
     (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
-      (setf amount (apply (agent-fold ag) (list ag (dealer-communal the-dealer) (dealer-pot the-dealer))))
+      (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer) (dealer-pot the-dealer))))
       (print amount)
       (if (= 0 amount) (setf (agent-hand ag) '())) ; discard the agent's cards if it didn't bet
       (print amount)
@@ -158,7 +158,7 @@
   (print (dealer-agents dealer))))
 
 
-; this is the interface to all fold functions
+; this is the interface to all bet functions
 ; this function will return 0 if folding
 ; otherwise it means to bet the returned number of chips
 (defun play-hand (agent com-cards pot) 
