@@ -39,13 +39,16 @@
 ; This creates num-agents number of agents
 ; that are initialized with num-chips number of chips
 ; and the agents are returned as a list.
+; Strategy of agents based on ID: "safe" (0-3), "risky" (4-6), "bluff (7-9)
 (defun make-agents (num-agents num-chips)
   (let ((agents))
     (dotimes (i num-agents agents)
       (setf agents (cons 
-		    (make-agent :id i :chips num-chips :bet #'play-hand)
-		    agents))
-      )))
+		    (make-agent :id i :chips num-chips :bet (cond 
+                                              	       ((<= i 3) #'safe) 
+                                              	       ((and (>= i 4) (<= i 6)) #'risky) 
+                                                       (t #'bluff)))
+		  agents)))))
 
 
 (defstruct agent
@@ -104,7 +107,7 @@
   ; agents is a lambda function that returns the list of agents that have not folded
   (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
     (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
-      (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer) (dealer-pot the-dealer))))
+      (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
       (print amount)
       (if (= 0 amount) (setf (agent-hand ag) '())) ; discard the agent's cards if it didn't bet
       (print amount)
@@ -160,11 +163,39 @@
 
 ; this is the interface to all bet functions
 ; this function will return 0 if folding
-; otherwise it means to bet the returned number of chips
-(defun play-hand (agent com-cards pot) 
-  (if (= 0 (agent-chips agent)) 0 1)
- ); note that we could use this as a forwarding function based on id of agent
+; otherwise it bets one chip if agent's hand is above the threshold.
+; threshold depends on agent's strategy -- safe, risky, or bluff
+(defun play-hand (agent com-cards threshold)
+  (cond
+    ; agent ran out of chips and has to fold
+    ((= 0 (agent-chips agent)) 0)
+    ; if during the game agent goes down to 3 or less chips, he keeps betting 
+    ; because if he folds, he won't have enough chips to play next game
+    ((and (> (agent-chips agent) 0) (< (agent-chips agent) 4)) 1)
+    ; otherwise, agent decides whether to bet or fold, based on his hand
+    (t (if (< (if (eq com-cards nil) 
+                (HandRank2 (getpairs) (agent-hand agent))
+                (/ (num-best (agent-hand agent) com-cards 1000) 1000))
+             threshold) 1 0))))
   
+
+; A "safe" agent bets only if his hand is in top 10%
+(defun safe (agent com-cards)
+  (play-hand agent com-cards 0.1))
+
+; A "risky" agent bets only if his hand is in top 50%
+(defun risky (agent com-cards)
+  (play-hand agent com-cards 0.5))
+
+; A "bluff" agent bets as long as his hand is in top 90%
+(defun bluff (agent com-cards)
+  (play-hand agent com-cards 0.9))
+
+
+
+
+
+
 
 
 
