@@ -175,7 +175,7 @@
     ; otherwise, agent decides whether to bet or fold, based on his hand
     (t (if (< (if (eq com-cards nil) 
                 (HandRank2 (getpairs) (agent-hand agent))
-                (/ (num-best (agent-hand agent) com-cards 1000) 1000))
+                (/ (num-better (agent-hand agent) com-cards 1000) 1000))
              threshold) 1 0))))
   
 
@@ -223,12 +223,12 @@
 ; Effects: returns the proportion of possible card pairs that are more 
 ;          desirable than the given pair using allpairs
 (defun HandRank2 (allpairs yourhand)
-  (let ((count 0) (yoursorted (sorthand (numericalhand yourhand))))
-    (dolist (hand allpairs)
-      (setf count (incf count))
-      (if (equal (sorthand (numericalhand hand)) yoursorted)
-	  (return)))
-    (- 1 (/ count (length allpairs)))))
+  (let ((yoursorted (sorthand (numericalhand yourhand))) (i nil)) 
+    ; position of your pair in the allpairs list
+    (setf i (position yoursorted allpairs :test #'equal))
+    ; if the pair wasn't found, look for its reversed version
+    (if (null i) (setf i (position (reverse yoursorted) allpairs :test #'equal)))
+    (- 1 (/ (+ i 1) (length allpairs)))))
 
 
 (defun testHandRank2 ()
