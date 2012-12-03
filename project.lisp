@@ -47,10 +47,10 @@
   (let ((agents))
     (dotimes (i num-agents agents)
       (setf agents (cons 
-		    (make-agent :id i :chips num-chips :bet #'bluff) ;(cond 
-                                              	     ;  ((<= i 3) #'safe) 
-                                              	      ; ((and (>= i 4) (<= i 6)) #'risky) 
-                                                      ; (t #'bluff)))
+		    (make-agent :id i :chips num-chips :bet (cond 
+                                              	       ((<= i 3) #'safe) 
+                                              	       ((and (>= i 4) (<= i 6)) #'risky) 
+                                                       (t #'bluff)))
 		  agents)))))
 
 
