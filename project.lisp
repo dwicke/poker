@@ -24,6 +24,8 @@
 (defun play-game (the-dealer) ; winner is the final agent left with chips
     (do () ((= (length (dealer-agents the-dealer)) 1) (dealer-agents the-dealer))
       ; so we do the following until there is a victor.
+      (setf (dealer-communal the-dealer) '())
+      (setf (dealer-deck the-dealer) (RandomShuffle (make-deck))); make a new deck
       (deal-hands the-dealer)   ; first deal all the agents their hand ie two cards to each agent
       (m-collect-bets the-dealer) ; get the bets from all the agents and if a winner go end
       (deal-com the-dealer 3)
@@ -34,6 +36,7 @@
       (m-collect-bets the-dealer)
       end
       (eval-winner the-dealer)
+      (print "next round")
       ))
 
 ; This creates num-agents number of agents
@@ -44,10 +47,10 @@
   (let ((agents))
     (dotimes (i num-agents agents)
       (setf agents (cons 
-		    (make-agent :id i :chips num-chips :bet (cond 
-                                              	       ((<= i 3) #'safe) 
-                                              	       ((and (>= i 4) (<= i 6)) #'risky) 
-                                                       (t #'bluff)))
+		    (make-agent :id i :chips num-chips :bet #'bluff) ;(cond 
+                                              	     ;  ((<= i 3) #'safe) 
+                                              	      ; ((and (>= i 4) (<= i 6)) #'risky) 
+                                                      ; (t #'bluff)))
 		  agents)))))
 
 
@@ -107,6 +110,9 @@
   ; agents is a lambda function that returns the list of agents that have not folded
   (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
     (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
+      (print "Number of Agents:")
+      (print (length (apply agents '())))
+      (if (>= 1 (length (apply agents '()))) (return-from collect-bets (<= (length (apply agents '())) 1)  )); return if 
       (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
       (print amount)
       (if (= 0 amount) (setf (agent-hand ag) '())) ; discard the agent's cards if it didn't bet
@@ -124,6 +130,8 @@
   (let* ((agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer))))
 	 
 	 (sorted-agents (sort (apply agents '()) #'(lambda (x y) (if (not (null y)) (>= (compare-best x y the-dealer)  0) T) ))))
+    (print "sorted-agents:")
+    (print sorted-agents)
     ; might want to do a remove if not equal to the first one when compare hands is done ie remove all that don't return 0 when compared to first in sorted-agents
     ; then I can split the pot.
     ; so the first agent in the sorted-agents is the winner! give him the pot
@@ -132,7 +140,7 @@
   (setf (dealer-pot the-dealer) 0)
   ; then remove the agents that have 3 or less chips left to play with.
   ; (this ensures that it is possible for them to play another round by betting one chip each time)
-  (setf (dealer-agents the-dealer) (remove-if  #'(lambda (x) (if (<= 3 (agent-chips x)) T)) (dealer-agents the-dealer)))
+  (setf (dealer-agents the-dealer) (remove-if  #'(lambda (x) (if (<= (agent-chips x) 3) T)) (dealer-agents the-dealer)))
 
 )
 
@@ -154,6 +162,7 @@
   (let ((dealer (make-dealer :pot 0 :deck (RandomShuffle (make-deck)) ; create the dealer
 					:agents(make-agents 2 5))))
     (deal-hands dealer)
+    (setf (agent-hand (second (dealer-agents dealer))) '())
     (setf (agent-chips (first (dealer-agents dealer))) 2)
     
     (deal-com dealer 5)
@@ -223,12 +232,20 @@
 ; Effects: returns the proportion of possible card pairs that are more 
 ;          desirable than the given pair using allpairs
 (defun HandRank2 (allpairs yourhand)
-  (let ((yoursorted (sorthand (numericalhand yourhand))) (i nil)) 
-    ; position of your pair in the allpairs list
-    (setf i (position yoursorted allpairs :test #'equal))
-    ; if the pair wasn't found, look for its reversed version
-    (if (null i) (setf i (position (reverse yoursorted) allpairs :test #'equal)))
-    (- 1 (/ (+ i 1) (length allpairs)))))
+  (let ((i nil) (yoursorted (sorthand (numericalhand yourhand))) ) 
+    (setf i (hand-rank-helper allpairs yoursorted))
+    (if (null i)
+	(setf i (hand-rank-helper allpairs (reverse yoursorted))))
+    i
+    ))
+
+(defun hand-rank-helper (allPairs yourhand)
+  (let ((count 0) (yoursorted yourhand))
+    (dolist (hand allpairs)
+      (setf count (incf count))
+      (if (equal (sorthand (numericalhand hand)) yoursorted)
+	  (return)))
+    (- 1 (/ count (length allpairs)))))
 
 
 (defun testHandRank2 ()
