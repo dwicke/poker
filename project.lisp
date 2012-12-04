@@ -231,21 +231,17 @@
 
 ; Effects: returns the proportion of possible card pairs that are more 
 ;          desirable than the given pair using allpairs
-(defun HandRank2 (allpairs yourhand)
-  (let ((i nil) (yoursorted (sorthand (numericalhand yourhand))) ) 
-    (setf i (hand-rank-helper allpairs yoursorted))
-    (if (null i)
-	(setf i (hand-rank-helper allpairs (reverse yoursorted))))
-    i
-    ))
+;; HandRank2
+(defun HandRank2 (pair sortd)
+  (let ((len (length sortd)) (len1 0) (lis nil))
+    (setf lis (member pair sortd 
+		      :test #'(lambda (x y) (or (and (equal (first x) (first y)) (equal (second x) (second y)))
+					      (and (equal (first x) (second y)) (equal (second x) (first y)))))))
+    (setf len1 (length lis))
+    (/ (- len1 1) len)
+    )
+)
 
-(defun hand-rank-helper (allPairs yourhand)
-  (let ((count 0) (yoursorted yourhand))
-    (dolist (hand allpairs)
-      (setf count (incf count))
-      (if (equal (sorthand (numericalhand hand)) yoursorted)
-	  (return)))
-    (- 1 (/ count (length allpairs)))))
 
 
 (defun testHandRank2 ()
@@ -508,9 +504,7 @@
 		 ((null (fourth hs2))  1)   ;; player1 has FH
 		 ((> (second (fourth hs1)) (second (fourth hs2))) 1)  ;; higher card
 		 ((< (second (fourth hs1)) (second (fourth hs2))) -1) ;; higher card
-		 (t (cond ((> (third (fourth hs1)) (third (fourth hs2))) 1)
-			  ((< (third (fourth hs1)) (third (fourth hs2))) -1)
-			  (t 0)))))   ;; hands equal
+		 (t 0)))   ;; hands equal
 	  ;; one player has Flush
 	  ((or (fifth hs1) (fifth hs2))
 	   (cond ((null (fifth hs1)) -1)   ;; player2 has F
@@ -560,8 +554,9 @@
 	  ;; the strongest card wins
 	  (t (cond ((< (tenth hs1) (tenth hs2)) -1) ;; player 2 has the high card
 		   ((> (tenth hs1) (tenth hs2)) 1)  ;; player 1 has a high card
-		   (t (BreakTies (reverse cvals1) (reverse cvals2))))))))  ;; hands equal
-	   
+		   (t (BreakTies cvals1 cvals2)))))))  ;; hands equal
+
+
 
  
 
