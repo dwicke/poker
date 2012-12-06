@@ -109,19 +109,21 @@
   ; amount is the amount the current agent has bet
   ; agents is a lambda function that returns the list of agents that have not folded
   (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
-    (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
+   (setf agent-hands nil) (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
       (print "Number of Agents:")
       (print (length (apply agents '())))
       (if (>= 1 (length (apply agents '()))) (return-from collect-bets (<= (length (apply agents '())) 1)  )); return if 
       (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
-      (print amount)
       (if (= 0 amount) (setf (agent-hand ag) '())) ; discard the agent's cards if it didn't bet
-      (print amount)
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
-      
+      (setf agent-hands (cons (agent-hand ag) agent-hands))
+      (print "Cards Played") 
+      (print agent-hands)
       (incf (dealer-pot the-dealer) amount)        ; and add them to the pot
+      (print "Pot Size") 
       (print (dealer-pot the-dealer))
-      )))
+      ) ))
+
 
 
 ; So Give the chips in the pot to the winner
@@ -175,7 +177,11 @@
 ; otherwise it bets one chip if agent's hand is above the threshold.
 ; threshold depends on agent's strategy -- safe, risky, or bluff
 (defun play-hand (agent com-cards threshold)
-  (cond
+    (print "Agent Status Summary")
+    (print agent)
+    (print "Communal Cards")
+    (print com-cards)
+    (cond
     ; agent ran out of chips and has to fold
     ((= 0 (agent-chips agent)) 0)
     ; if during the game agent goes down to 3 or less chips, he keeps betting 
@@ -186,6 +192,7 @@
                 (HandRank2 (getpairs) (agent-hand agent))
                 (/ (num-better (agent-hand agent) com-cards 1000) 1000))
              threshold) 1 0))))
+  
   
 
 ; A "safe" agent bets only if his hand is in top 10%
