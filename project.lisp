@@ -1,4 +1,4 @@
-;PokerMaster is the main function that takes three arguments:
+ ;PokerMaster is the main function that takes three arguments:
 ;	    - N: # of PokerAgent's, 
 ;	    - M: # of playing chips per PokerAgent,
 ;	    - K: # of games to play/simulate.
@@ -116,9 +116,9 @@
       (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
       (if (= 0 amount) (setf (agent-hand ag) '())) ; discard the agent's cards if it didn't bet
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
-      (setf agent-hands (cons (agent-hand ag) agent-hands))
+      (setf agent-hands (cons (agent-hand ag) agent-hands)) ;create a list containing all the cards played so far by agents
       (print "Cards Played") 
-      (print agent-hands)
+      (print agent-hands)                                                                      
       (incf (dealer-pot the-dealer) amount)        ; and add them to the pot
       (print "Pot Size") 
       (print (dealer-pot the-dealer))
