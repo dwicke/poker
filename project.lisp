@@ -226,13 +226,6 @@
 
 
 
-
-; Drew Wicke
-; CS580 Fall 2012
-; Dr. Duric
-; Homework #3
-
-
 ;; (i) 
 
 
