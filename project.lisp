@@ -108,21 +108,25 @@
 (defun collect-bets (the-dealer) 
   ; amount is the amount the current agent has bet
   ; agents is a lambda function that returns the list of agents that have not folded
-  (let ( (amount 0) (agent-hands) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
-    (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
-      (print "Number of Agents:")
-      (print (length (apply agents '())))
+  (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
+   (setf agent-output nil) 
+   (setf agent-hands nil) 
+   (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
+      ;(print "Number of Agents:")
+      ;(print (length (apply agents '())))
       (if (>= 1 (length (apply agents '()))) (return-from collect-bets (<= (length (apply agents '())) 1)  )); return if 
       (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
-      (if (= 0 amount) (setf (agent-hand ag) '())) ; discard the agent's cards if it didn't bet
+      (if (= 0 amount) (setf (agent-hand ag) nil)) ; discard the agent's cards if it didn't bet
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
-      (setf agent-hands (cons (agent-hand ag) agent-hands)) ;create a list containing all the cards played so far by agents
-      (print "Cards Played") 
-      (print agent-hands)                                                                      
+      (setf agent-hands (cons (agent-hand ag) agent-hands)) ;all hands played so far
+      (setf agent-output (cons agent-hands (cons (dealer-communal the-dealer)(dealer-pot the-dealer)))) ;all hands plus list of communal cards and the current pot
+      (cond ((= (length (apply agents '())) (length agent-hands)) 
+            (print "Round Status Summary:  ( (Cards Played after nth Round - i.e. (player 0 hand) (player 1 hand) ... (player n hand))  (Communal Cards)  (Pot after nth Round) )")
+            (print agent-output))
+            (t nil))
       (incf (dealer-pot the-dealer) amount)        ; and add them to the pot
-      (print "Pot Size") 
-      (print (dealer-pot the-dealer))
-      ) ))
+      )
+      ))
 
 
 
@@ -177,10 +181,10 @@
 ; otherwise it bets one chip if agent's hand is above the threshold.
 ; threshold depends on agent's strategy -- safe, risky, or bluff
 (defun play-hand (agent com-cards threshold)
-    (print "Agent Status Summary")
+    (print "Agent Status Summary for Current Hand in Round")
     (print agent)
-    (print "Communal Cards")
-    (print com-cards)
+    ;(print "Communal Cards")
+    ;(print com-cards)
     (cond
     ; agent ran out of chips and has to fold
     ((= 0 (agent-chips agent)) 0)
