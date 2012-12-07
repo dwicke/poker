@@ -108,8 +108,8 @@
 (defun collect-bets (the-dealer) 
   ; amount is the amount the current agent has bet
   ; agents is a lambda function that returns the list of agents that have not folded
-  (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
-   (setf agent-hands nil) (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
+  (let ( (amount 0) (agent-hands) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
+    (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
       (print "Number of Agents:")
       (print (length (apply agents '())))
       (if (>= 1 (length (apply agents '()))) (return-from collect-bets (<= (length (apply agents '())) 1)  )); return if 
