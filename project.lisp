@@ -1,15 +1,14 @@
- ;PokerMaster is the main function that takes three arguments:
+;PokerMaster is the main function that takes three arguments:
 ;	    - N: # of PokerAgent's, 
 ;	    - M: # of playing chips per PokerAgent,
 ;	    - K: # of games to play/simulate.
 
 (defun PokerMaster (N M K)
   (let ((winners));winners is the list of winners
-    (dotimes (i K winners) ; play K games
-      (setf winners (cons (play-game ;play the game
-			   (make-dealer :pot 0 :deck (RandomShuffle (make-deck)) ; create the dealer
-					:agents(make-agents N M))) ; create the players
-			  winners))))); set the winner
+	(setf winners (cons (play-game ;play the game
+                          (make-dealer :pot 0 :deck (RandomShuffle (make-deck)) ; create the dealer
+					      :agents(make-agents N M)) K) ; create the players
+			            winners)))); set the winner
     
 
 
@@ -21,23 +20,53 @@
       (go end)))
 
 
-(defun play-game (the-dealer) ; winner is the final agent left with chips
-    (do () ((= (length (dealer-agents the-dealer)) 1) (dealer-agents the-dealer))
-      ; so we do the following until there is a victor.
+(defun play-game (the-dealer K) ; winner is the final agent left with chips
+  (let ((game 0))
+    (do () ((or (= (length (dealer-agents the-dealer)) 1) (= game K)) (final-info the-dealer))
+      ; so we do the following until there is a winner, or all K games are finished
       (setf (dealer-communal the-dealer) '())
       (setf (dealer-deck the-dealer) (RandomShuffle (make-deck))); make a new deck
+      (format t "~%~%GAME #~3D~%" (incf game)) ; show which number game is about to begin
       (deal-hands the-dealer)   ; first deal all the agents their hand ie two cards to each agent
+      (format t "~%PLAYERS: ~A" (agents-info the-dealer)) ; display all players initially
       (m-collect-bets the-dealer) ; get the bets from all the agents and if a winner go end
+      (format t "~%INITIAL BETTING ~T~T COMMUNAL: ~A ~T~T POT: ~4D" 
+        (dealer-communal the-dealer) (dealer-pot the-dealer))
+      (format t "~%PLAYERS: ~A" (agents-info the-dealer))
       (deal-com the-dealer 3)
       (m-collect-bets the-dealer)
+      (format t "~%THE FLOP ~T~T COMMUNAL: ~A ~T~T POT: ~4D" 
+        (dealer-communal the-dealer) (dealer-pot the-dealer))
+      (format t "~%PLAYERS: ~A" (agents-info the-dealer))
       (deal-com the-dealer 1)
       (m-collect-bets the-dealer)
+      (format t "~%FOURTH STREET ~T~T COMMUNAL: ~A ~T~T POT: ~4D" 
+        (dealer-communal the-dealer) (dealer-pot the-dealer))
+      (format t "~%PLAYERS: ~A" (agents-info the-dealer))
       (deal-com the-dealer 1)
       (m-collect-bets the-dealer)
+      (format t "~%FIFTH STREET ~T~T COMMUNAL: ~A ~T~T POT: ~4D" 
+        (dealer-communal the-dealer) (dealer-pot the-dealer))
+      (format t "~%PLAYERS: ~A" (agents-info the-dealer))
       end
-      (eval-winner the-dealer)
-      (print "next round")
-      ))
+      (eval-winner the-dealer))))
+
+
+; Display (ID Hand Chips) for every agent who hasn't folded
+(defun agents-info (the-dealer)
+  (let ((info nil))
+    (dolist (ag (dealer-agents the-dealer))
+      (if (not (null (agent-hand ag)))
+      (setf info (cons (list (agent-id ag) (agent-hand ag) (agent-chips ag)) info))))
+    info))
+
+; Display final result
+(defun final-info (the-dealer)
+  (format t "~%~%Result:~%")
+  (dolist (ag (reverse (dealer-agents the-dealer)))
+    (format t "Agent ID: ~D has ~4D chips.~%" (agent-id ag) (agent-chips ag))))
+
+
 
 ; This creates num-agents number of agents
 ; that are initialized with num-chips number of chips
@@ -112,17 +141,13 @@
    (setf agent-output nil) 
    (setf agent-hands nil) 
    (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
-      ;(print "Number of Agents:")
-      ;(print (length (apply agents '())))
       (if (>= 1 (length (apply agents '()))) (return-from collect-bets (<= (length (apply agents '())) 1)  )); return if 
       (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
       (if (= 0 amount) (setf (agent-hand ag) nil)) ; discard the agent's cards if it didn't bet
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
       (setf agent-hands (cons (agent-hand ag) agent-hands)) ;all hands played so far
       (setf agent-output (cons agent-hands (cons (dealer-communal the-dealer)(dealer-pot the-dealer)))) ;all hands plus list of communal cards and the current pot
-      (cond ((= (length (apply agents '())) (length agent-hands)) 
-            (print "Round Status Summary:  ( (Cards Played after nth Round - i.e. (player 0 hand) (player 1 hand) ... (player n hand))  (Communal Cards)  (Pot after nth Round) )")
-            (print agent-output))
+      (cond ((= (length (apply agents '())) (length agent-hands)))
             (t nil))
       (incf (dealer-pot the-dealer) amount)        ; and add them to the pot
       )
@@ -134,14 +159,17 @@
 ; and remove any agents that have no chips left
 (defun eval-winner (the-dealer)
   (let* ((agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer))))
-	 
 	 (sorted-agents (sort (apply agents '()) #'(lambda (x y) (if (not (null y)) (>= (compare-best x y the-dealer)  0) T) ))))
-    (print "sorted-agents:")
-    (print sorted-agents)
     ; might want to do a remove if not equal to the first one when compare hands is done ie remove all that don't return 0 when compared to first in sorted-agents
     ; then I can split the pot.
     ; so the first agent in the sorted-agents is the winner! give him the pot
-    (incf (agent-chips (first sorted-agents)) (dealer-pot the-dealer)))
+    (incf (agent-chips (first sorted-agents)) (dealer-pot the-dealer))
+    (format t "~%WINNER OF THIS GAME: ~A ~T~T COMMUNAL: ~A" 
+      (list (agent-id (first sorted-agents))
+            (agent-hand (first sorted-agents))
+            (agent-chips (first sorted-agents)))
+      (dealer-communal the-dealer))
+  )  
   ;set pot to 0
   (setf (dealer-pot the-dealer) 0)
   ; then remove the agents that have 3 or less chips left to play with.
@@ -181,10 +209,6 @@
 ; otherwise it bets one chip if agent's hand is above the threshold.
 ; threshold depends on agent's strategy -- safe, risky, or bluff
 (defun play-hand (agent com-cards threshold)
-    (print "Agent Status Summary for Current Hand in Round")
-    (print agent)
-    ;(print "Communal Cards")
-    ;(print com-cards)
     (cond
     ; agent ran out of chips and has to fold
     ((= 0 (agent-chips agent)) 0)
@@ -364,7 +388,7 @@
       (resetbest); must reset the best
       (if (= 1 (CompareHands (funcall opshand) mybest));compare the hands
 	  (incf score)))));if oponents hand is better increment score
-	 
+
 ;;;;;; The rest is given code so don't need to test.
 
 ;; Evaluate hand from strongest to weakest
