@@ -4,13 +4,9 @@
 ;	    - K: # of games to play/simulate.
 
 (defun PokerMaster (N M K)
-  (let ((winners));winners is the list of winners
-	(setf winners (cons (play-game ;play the game
-                          (make-dealer :pot 0 :deck (RandomShuffle (make-deck)) ; create the dealer
-					      :agents(make-agents N M)) K) ; create the players
-			            winners)))); set the winner
-    
-
+       (play-game ;play the game
+               (make-dealer :pot 0 :deckMaker #'(lambda () (RandomShuffle (make-deck))) ; create the dealer
+               :agents(make-agents N M)) K)); set the winner
 
 ; This macro is used in play-game
 ; so if game is done no one can bet
@@ -25,7 +21,7 @@
     (do () ((or (= (length (dealer-agents the-dealer)) 1) (= game K)) (final-info the-dealer))
       ; so we do the following until there is a winner, or all K games are finished
       (setf (dealer-communal the-dealer) '())
-      (setf (dealer-deck the-dealer) (RandomShuffle (make-deck))); make a new deck
+      (setf (dealer-deck the-dealer) (funcall (dealer-deckMaker the-dealer))); make a new deck
       (format t "~%~%GAME #~3D~%" (incf game)) ; show which number game is about to begin
       (deal-hands the-dealer)   ; first deal all the agents their hand ie two cards to each agent
       (format t "~%PLAYERS: ~A" (agents-info the-dealer)) ; display all players initially
@@ -64,7 +60,7 @@
 (defun final-info (the-dealer)
   (format t "~%~%Result:~%")
   (dolist (ag (reverse (dealer-agents the-dealer)))
-    (format t "Agent ID: ~D has ~4D chips.~%" (agent-id ag) (agent-chips ag))))
+    (format t "Agent ID: ~a has ~a chips.~%" (agent-id ag) (agent-chips ag))))
 
 
 
@@ -92,6 +88,7 @@
 
 (defstruct dealer
   deck      ; the remaining cards that the dealer can choose from
+  deckMaker ; function that returns a new deck
   agents    ; the remaining players in the game
   communal  ; the communal cards for the current game
   pot       ; the number of chips in the pot
@@ -138,20 +135,20 @@
   ; amount is the amount the current agent has bet
   ; agents is a lambda function that returns the list of agents that have not folded
   (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
-   (setf agent-output nil) 
-   (setf agent-hands nil) 
+   (let ((agent-hands ()) (agent-output ()))
    (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
       (if (>= 1 (length (apply agents '()))) (return-from collect-bets (<= (length (apply agents '())) 1)  )); return if 
       (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
-      (if (= 0 amount) (setf (agent-hand ag) nil)) ; discard the agent's cards if it didn't bet
+      (if (= 0 amount) (progn (format t "~%    Agent ~a folded." (agent-id ag)) (setf (agent-hand ag) nil))) ; discard the agent's cards if it didn't bet
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
       (setf agent-hands (cons (agent-hand ag) agent-hands)) ;all hands played so far
+      (if (not (= 0 amount)) (format t "~%    Agent ~a bet ~a chips." (agent-id ag) amount))
       (setf agent-output (cons agent-hands (cons (dealer-communal the-dealer)(dealer-pot the-dealer)))) ;all hands plus list of communal cards and the current pot
       (cond ((= (length (apply agents '())) (length agent-hands)))
             (t nil))
       (incf (dealer-pot the-dealer) amount)        ; and add them to the pot
       )
-      ))
+      )))
 
 
 
@@ -234,22 +231,6 @@
 ; A "bluff" agent bets as long as his hand is in top 90%
 (defun bluff (agent com-cards)
   (play-hand agent com-cards 0.9))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -586,9 +567,8 @@
 
 
 
- 
-
-
+(defun test-poker-master ()
+       (PokerMaster 5 10 100))
 
 
 ;; Sort hand by card value
