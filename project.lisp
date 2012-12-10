@@ -142,14 +142,11 @@
       (if (= 0 amount) (progn (format t "~%    Agent ~a folded." (agent-id ag)) (setf (agent-hand ag) nil))) ; discard the agent's cards if it didn't bet
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
       (setf agent-hands (cons (agent-hand ag) agent-hands)) ;all hands played so far
-      (if (not (= 0 amount)) (format t "~%    Agent ~a bet ~a chips." (agent-id ag) amount))
+      (if (not (= 0 amount)) (format t "~%    Agent ~a bet ~a chips. Agent has ~a chips now." (agent-id ag) amount (agent-chips ag)))
       (setf agent-output (cons agent-hands (cons (dealer-communal the-dealer)(dealer-pot the-dealer)))) ;all hands plus list of communal cards and the current pot
       (cond ((= (length (apply agents '())) (length agent-hands)))
             (t nil))
-      (incf (dealer-pot the-dealer) amount)        ; and add them to the pot
-      )
-      )))
-
+      (incf (dealer-pot the-dealer) amount)))))        ; and add them to the pot
 
 
 ; So Give the chips in the pot to the winner
@@ -160,15 +157,21 @@
     ; might want to do a remove if not equal to the first one when compare hands is done ie remove all that don't return 0 when compared to first in sorted-agents
     ; then I can split the pot.
     ; so the first agent in the sorted-agents is the winner! give him the pot
-    (incf (agent-chips (first sorted-agents)) (dealer-pot the-dealer))
-    (format t "~%WINNER OF THIS GAME: ~A ~T~T COMMUNAL: ~A" 
-      (list (agent-id (first sorted-agents))
-            (agent-hand (first sorted-agents))
-            (agent-chips (first sorted-agents)))
-      (dealer-communal the-dealer))
-  )  
-  ;set pot to 0
-  (setf (dealer-pot the-dealer) 0)
+    (let ((winners (list (first sorted-agents))) (winnings 0))
+      (loop for x in (rest sorted-agents) do
+         (if (= 0 (compare-best (first winners) x the-dealer)) (setf winners (cons x winners))))
+      (setf winnings (floor (/ (dealer-pot the-dealer) (length winners))))
+      (format t "~%Winnings for each player is ~a." winnings)
+      (loop for winner in winners do 
+            (incf (agent-chips winner) winnings)
+            (decf (dealer-pot the-dealer) winnings)
+            (format t "~%WINNER OF THIS GAME: ~A ~T~T Hand: ~A" 
+               (list (agent-id winner)
+                  (agent-hand winner) 
+                  (agent-chips winner))
+               (comb 5 (append (agent-hand winner) (dealer-communal the-dealer)) #'best)))))
+  ; leave left overs in the pot incase the pot is odd (see http://en.wikipedia.org/wiki/Split_(poker))
+  
   ; then remove the agents that have 3 or less chips left to play with.
   ; (this ensures that it is possible for them to play another round by betting one chip each time)
   (setf (dealer-agents the-dealer) (remove-if  #'(lambda (x) (if (<= (agent-chips x) 3) T)) (dealer-agents the-dealer)))
