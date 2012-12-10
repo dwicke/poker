@@ -135,18 +135,16 @@
   ; amount is the amount the current agent has bet
   ; agents is a lambda function that returns the list of agents that have not folded
   (let ( (amount 0) (agents #'(lambda () (remove-if #'(lambda (x) (if (= 0 (length (agent-hand x))) T)) (dealer-agents the-dealer)))))
-   (let ((agent-hands ()) (agent-output ()))
+   
    (dolist (ag (apply agents '()) (<= (length (apply agents '())) 1))
       (if (>= 1 (length (apply agents '()))) (return-from collect-bets (<= (length (apply agents '())) 1)  )); return if 
       (setf amount (apply (agent-bet ag) (list ag (dealer-communal the-dealer))))
       (if (= 0 amount) (progn (format t "~%    Agent ~a folded." (agent-id ag)) (setf (agent-hand ag) nil))) ; discard the agent's cards if it didn't bet
       (decf (agent-chips ag) amount)               ; remove the number of chips from the agent that it bet
-      (setf agent-hands (cons (agent-hand ag) agent-hands)) ;all hands played so far
+      
       (if (not (= 0 amount)) (format t "~%    Agent ~a bet ~a chips. Agent has ~a chips now." (agent-id ag) amount (agent-chips ag)))
-      (setf agent-output (cons agent-hands (cons (dealer-communal the-dealer)(dealer-pot the-dealer)))) ;all hands plus list of communal cards and the current pot
-      (cond ((= (length (apply agents '())) (length agent-hands)))
-            (t nil))
-      (incf (dealer-pot the-dealer) amount)))))        ; and add them to the pot
+     
+      (incf (dealer-pot the-dealer) amount))))       ; and add them to the pot
 
 
 ; So Give the chips in the pot to the winner
