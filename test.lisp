@@ -1,3 +1,8 @@
+Bryan Absher
+CS580 Fall 2012
+Dr. Duric
+FInal Project
+
 (defun test-play-game ()
        (print "agent 1 continues to play becuase he has no chips.")
        (play-game 
@@ -53,6 +58,13 @@
                        :agents (list 
                                   (make-agent :id 'Joker :chips 4 :bet #'bluff)
                                   (make-agent :id 'Batman :chips 6 :bet #'bluff)))
+          2)
+       (print "Test where batman gets the worst hand and folds.")
+       (play-game 
+          (make-dealer :pot 0 :deckMaker #'(lambda () (list '(A D) '(A S) '(2 S) '(3 H) '(Q H) '(Q D) '(K H) '(8 D) '(J C) '(4 D) '(J S)))
+                       :agents (list 
+                                  (make-agent :id 'Joker :chips 6 :bet #'safe)
+                                  (make-agent :id 'Batman :chips 6 :bet #'safe)))
           2)
        )
 

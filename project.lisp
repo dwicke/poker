@@ -1,3 +1,9 @@
+Bryan Absher, Drew Wicke, Mihail Sharov, Luis Gallo
+CS580 Fall 2012
+Dr. Duric
+FInal Project
+
+
 ;PokerMaster is the main function that takes three arguments:
 ;	    - N: # of PokerAgent's, 
 ;	    - M: # of playing chips per PokerAgent,
@@ -237,22 +243,19 @@
 
 
 
-
 ;; (i) 
 
 
 ; Effects: returns the proportion of possible card pairs that are more 
 ;          desirable than the given pair using allpairs
-;; HandRank2
-(defun HandRank2 (pair sortd)
-  (let ((len (length sortd)) (len1 0) (lis nil))
-    (setf lis (member pair sortd 
-		      :test #'(lambda (x y) (or (and (equal (first x) (first y)) (equal (second x) (second y)))
-					      (and (equal (first x) (second y)) (equal (second x) (first y)))))))
-    (setf len1 (length lis))
-    (/ (- len1 1) len)
-    )
-)
+
+(defun HandRank2 (pairs hand)
+      (/ (- (length (member hand pairs 
+            :test #' (lambda (x y)
+               (cond
+                  ((and (equal (first x) (first y)) (equal (second x) (second y))) t)
+                  ((and (equal (second x) (first y)) (equal (first x) (second y))) t)
+                  (t nil))))) 1) (length pairs)))
 
 
 
